@@ -1,0 +1,52 @@
+import PySimpleGUI as sg 
+from sqlite3 import connect
+
+main_layout = [[sg.Text('What do you want to do?')],
+               [sg.Button('login', size=(8,1)), sg.Button('sign-up', size=(8,1))]]
+
+login_layout = [[sg.Text('username'), sg.Input(key='username')],
+                [sg.Text('password'), sg.Input(password_char='*', key='password')],
+                [sg.Button('login', bind_return_key=True)]]
+
+signup_layout = [[sg.Text('username'), sg.Input(key='username')],
+                 [sg.Text('email'), sg.Input(key='email')],
+                 [sg.Text('password'), sg.Input(password_char='*', key='password')],
+                 [sg.Button('sign-up', bind_return_key=True)]]
+
+main_window = sg.Window('Main Menu', main_layout, element_justification='center')
+login_window = sg.Window('Login', login_layout, element_justification='right')
+signup_window = sg.Window('Create Account', signup_layout, element_justification='right')
+
+def login(values):
+    with connect('users.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM test WHERE username = ? AND password = ?", (values['username'], values['password']))
+        row = cursor.fetchall()
+        if len(row) == 1:
+            sg.popup('You are now logged in.')
+        else:
+            sg.popup_error('Invalid username or password')
+
+def signup(values):
+    with connect('users.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute("CREATE TABLE IF NOT EXISTS test(id INTEGER PRIMARY KEY, username TEXT, email TEXT, password TEXT)")
+        cursor.execute("INSERT INTO test VALUES(NULL, ?, ?, ?)", (values['username'], values['email'], values['password']))
+        sg.popup('Username {} has been created'.format(values['username']))
+
+while True:
+    event, values = main_window.read()
+    if event in (None, 'Cancel'):
+        break
+    if event == 'login':
+        main_window.close()
+        log_event, log_values = login_window.read()
+        if log_event == 'login':
+            login(log_values)
+            break
+    if event == 'sign-up':
+        main_window.close()
+        sign_event, sign_values = signup_window.read()
+        if sign_event == 'sign-up':
+            signup(sign_values)
+            break
